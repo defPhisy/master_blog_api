@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask.wrappers import Response
+from typing import Optional, Dict, Any
 
 app = Flask(__name__)
 CORS(app)
@@ -42,6 +43,37 @@ def add_post() -> Response:
     return jsonify(new_post), 201  # type: ignore
 
 
+@app.route("/api/posts/<int:id>", methods=["DELETE"])
+def delete_post(id: int) -> Response:
+    """
+    Deletes a post by its ID.
+
+    This endpoint finds the post with the provided ID in the POSTS list.
+    If found, the post is deleted, and a success message is returned.
+    If the post is not found, a 404 error is returned.
+
+    Args:
+        id (int): The ID of the post to be deleted.
+
+    Returns:
+        Response: A JSON response with a success or error message.
+            - 200: Post successfully deleted.
+            - 404: Post not found.
+    """
+
+    # Find post by id
+    post = find_post(id)
+    if not post:
+        return jsonify({"error": f"Post with ID:{id} not Found"}), 404  # type: ignore
+
+    # Remove post
+    POSTS.remove(post)
+
+    return jsonify({
+        "message": f"Post with id {id} has been deleted successfully."
+    }), 200  # type: ignore
+
+
 def validate_post_data(post: dict) -> bool:
     """Validate that required fields are present in the post data.
 
@@ -53,6 +85,19 @@ def validate_post_data(post: dict) -> bool:
     """
     required_fields = {"title", "content"}
     return required_fields.issubset(post)
+
+
+def find_post(id: int) -> Optional[Dict[str, Any]]:
+    """
+    Finds a post by its ID.
+
+    Args:
+        id (int): The ID of the post to find.
+
+    Returns:
+        dict or None: The post if found, otherwise None.
+    """
+    return next((post for post in POSTS if post.get("id") == id), None)
 
 
 if __name__ == "__main__":
