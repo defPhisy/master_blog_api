@@ -89,6 +89,26 @@ def update_post(id) -> Response:
     return jsonify(post), 200  # type: ignore
 
 
+@app.route("/api/search", methods=["GET"])
+def search_posts() -> Response:
+    title = request.args.get("title")
+    content = request.args.get("content")
+
+    if title:
+        title_search_results = get_search_results(
+            search_item=title, key="title"
+        )
+        return title_search_results  # type: ignore
+
+    if content:
+        content_search_results = get_search_results(
+            search_item=content, key="content"
+        )
+        return content_search_results  # type: ignore
+
+    return jsonify(error="Invalid search parameter"), 400  # type: ignore
+
+
 def validate_post_data(post: dict) -> bool:
     """Validate that required fields are present in the post data.
 
@@ -115,10 +135,25 @@ def find_post(id: int) -> Optional[Dict[str, Any]]:
     return next((post for post in POSTS if post.get("id") == id), None)
 
 
-def has_valid_keys(post) -> bool:
+def has_valid_keys(post: dict) -> bool:
     return next(
         (False for key in post if key not in ("title", "content")), True
     )
+
+
+def search_for(search_item: str, key: str):
+    return [
+        post
+        for post in POSTS
+        if search_item.lower() in post.get(key, None).lower()
+    ]
+
+
+def get_search_results(search_item: str, key: str):
+    search_results = search_for(search_item=search_item, key=key)
+    if search_results:
+        return jsonify(search_results), 200  # type: ignore
+    return jsonify(error="Nothing found"), 404  # type: ignore
 
 
 if __name__ == "__main__":
