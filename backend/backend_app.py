@@ -116,10 +116,6 @@ def find_post(id: int) -> Optional[Dict[str, Any]]:
 
 
 def has_valid_keys(post) -> bool:
-    # for key in post:
-    #     if key not in ("title", "content"):
-    #         return False
-    # return True
     return next(
         (False for key in post if key not in ("title", "content")), True
     )
