@@ -74,6 +74,21 @@ def delete_post(id: int) -> Response:
     }), 200  # type: ignore
 
 
+@app.route("/api/posts/<int:id>", methods=["PUT"])
+def update_post(id) -> Response:
+    post = find_post(id)
+    if not post:
+        return jsonify(error=f"Post with ID:{id} not Found"), 404  # type: ignore
+
+    new_data = request.get_json()
+    if not has_valid_keys(new_data):
+        return jsonify(error="Invalid post data"), 400  # type: ignore
+
+    post.update(new_data)
+
+    return jsonify(post), 200  # type: ignore
+
+
 def validate_post_data(post: dict) -> bool:
     """Validate that required fields are present in the post data.
 
@@ -98,6 +113,16 @@ def find_post(id: int) -> Optional[Dict[str, Any]]:
         dict or None: The post if found, otherwise None.
     """
     return next((post for post in POSTS if post.get("id") == id), None)
+
+
+def has_valid_keys(post) -> bool:
+    # for key in post:
+    #     if key not in ("title", "content"):
+    #         return False
+    # return True
+    return next(
+        (False for key in post if key not in ("title", "content")), True
+    )
 
 
 if __name__ == "__main__":
