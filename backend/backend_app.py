@@ -3,6 +3,7 @@ from flask_cors import CORS
 from flask.wrappers import Response
 from typing import Optional, Dict, Any
 from swagger_ui import SWAGGER_URL, swagger_ui_blueprint
+from datetime import datetime
 
 
 app = Flask(__name__)
@@ -11,15 +12,37 @@ CORS(app)
 # API Documentation with swagger_ui on api/docs
 app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
 
-
+# ID and dates are generated automatically when creating or updating post
+POST_KEYS = ["title", "content", "author"]
 POSTS = [
-    {"id": 1, "title": "First post", "content": "This is the first post."},
-    {"id": 2, "title": "Second post", "content": "This is the second post."},
+    {
+        "id": 1,
+        "title": "First post",
+        "content": "This is the first post.",
+        "author": "Jane Doe",
+        "date_created": "01-01-2024",
+        "date_modified": "01-01-2024",
+    },
+    {
+        "id": 2,
+        "title": "Second post",
+        "content": "This is the second post.",
+        "author": "John Doe",
+        "date_created": "02-01-2024",
+        "date_modified": "02-01-2024",
+    },
 ]
 
 
 @app.route("/api/posts", methods=["GET"])
 def get_posts() -> Response:
+    """
+    Retrieves all posts.
+
+    Returns:
+        Response:
+            - 200: JSON list of all posts.
+    """
     return jsonify(POSTS)
 
 
@@ -44,6 +67,10 @@ def add_post() -> Response:
 
     # Assign a new ID based on the current maximum
     new_post["id"] = max((post.get("id", 0) for post in POSTS), default=0) + 1
+
+    # Assign a new creation date to post
+    new_post["date_created"] = datetime.now().strftime("%Y-%m-%d, %H:%M")
+
     POSTS.append(new_post)
 
     return jsonify(new_post), 201  # type: ignore
@@ -82,6 +109,18 @@ def delete_post(id: int) -> Response:
 
 @app.route("/api/posts/<int:id>", methods=["PUT"])
 def update_post(id) -> Response:
+    """
+    Updates an existing post by its ID.
+
+    Args:
+        id (int): The ID of the post to update.
+
+    Returns:
+        Response:
+            - 200: JSON representation of the updated post if successful.
+            - 404: Error message if the post is not found.
+            - 400: Error message if the input data is invalid.
+    """
     post = find_post(id)
     if not post:
         return jsonify(error=f"Post with ID:{id} not Found"), 404  # type: ignore
@@ -90,6 +129,9 @@ def update_post(id) -> Response:
     if not has_valid_keys(new_data):
         return jsonify(error="Invalid post data"), 400  # type: ignore
 
+    # Assign a new modification date to post
+    new_data["date_modified"] = datetime.now().strftime("%Y-%m-%d, %H:%M")
+
     post.update(new_data)
 
     return jsonify(post), 200  # type: ignore
@@ -97,8 +139,25 @@ def update_post(id) -> Response:
 
 @app.route("/api/search", methods=["GET"])
 def search_posts() -> Response:
-    title = request.args.get("title")
-    content = request.args.get("content")
+    """
+    Searches for posts based on query parameters.
+
+    Query Parameters:
+        - title (str, optional): Search term for the post title.
+        - content (str, optional): Search term for the post content.
+        - author (str, optional): Search term for the post author.
+        - date_created (str, optional): Search term for the post creation date.
+
+    Returns:
+        Response:
+            - 200: JSON list of matching posts if any found.
+            - 400: Error message for invalid search parameters.
+            - 404: Error message if no matches are found.
+    """
+    title = request.args.get("title", None)
+    content = request.args.get("content", None)
+    author = request.args.get("author", None)
+    date = request.args.get("date_created", None)
 
     if title:
         title_search_results = get_search_results(
@@ -106,11 +165,21 @@ def search_posts() -> Response:
         )
         return title_search_results  # type: ignore
 
-    if content:
+    elif content:
         content_search_results = get_search_results(
             search_item=content, key="content"
         )
         return content_search_results  # type: ignore
+
+    elif author:
+        author_search_results = get_search_results(
+            search_item=author, key="author"
+        )
+        return author_search_results  # type: ignore
+
+    elif date:
+        date_search_results = get_search_results(search_item=date, key="date")
+        return date_search_results  # type: ignore
 
     return jsonify(error="Invalid search parameter"), 400  # type: ignore
 
@@ -124,7 +193,7 @@ def validate_post_data(post: dict) -> bool:
     Returns:
         bool: True if the required fields are present, False otherwise.
     """
-    required_fields = {"title", "content"}
+    required_fields = set(POST_KEYS)
     return required_fields.issubset(post)
 
 
@@ -142,12 +211,30 @@ def find_post(id: int) -> Optional[Dict[str, Any]]:
 
 
 def has_valid_keys(post: dict) -> bool:
-    return next(
-        (False for key in post if key not in ("title", "content")), True
-    )
+    """
+    Checks if the provided post data contains only valid keys.
+
+    Args:
+        post (dict): The post data to validate.
+
+    Returns:
+        bool: True if all keys are valid, False otherwise.
+    """
+    return next((False for key in post if key not in POST_KEYS), True)
 
 
-def search_for(search_item: str, key: str):
+def search_for(search_item: str, key: str) -> list:
+    """
+    Searches for posts matching the specified key and search term.
+
+    Args:
+        search_item (str): The term to search for.
+        key (str): The field to search within (e.g., title, content).
+
+    Returns:
+        list: A list of matching posts.
+        Empty if no posts found.
+    """
     return [
         post
         for post in POSTS
@@ -155,7 +242,19 @@ def search_for(search_item: str, key: str):
     ]
 
 
-def get_search_results(search_item: str, key: str):
+def get_search_results(search_item: str, key: str) -> Response:
+    """
+    Retrieves search results for the specified term and key.
+
+    Args:
+        search_item (str): The term to search for.
+        key (str): The field to search within.
+
+    Returns:
+        Response:
+            - 200: JSON list of matching posts if found.
+            - 404: Error message if no matches are found.
+    """
     search_results = search_for(search_item=search_item, key=key)
     if search_results:
         return jsonify(search_results), 200  # type: ignore
