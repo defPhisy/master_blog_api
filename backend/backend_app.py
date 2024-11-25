@@ -4,6 +4,7 @@ from flask.wrappers import Response
 from typing import Optional, Dict, Any
 from swagger_ui import SWAGGER_URL, swagger_ui_blueprint
 from datetime import datetime
+from storage import load_posts, save_posts
 
 
 app = Flask(__name__)
@@ -14,24 +15,7 @@ app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
 
 # ID and dates are generated automatically when creating or updating post
 POST_KEYS = ["title", "content", "author"]
-POSTS = [
-    {
-        "id": 1,
-        "title": "First post",
-        "content": "This is the first post.",
-        "author": "Jane Doe",
-        "date_created": "01-01-2024",
-        "date_modified": "01-01-2024",
-    },
-    {
-        "id": 2,
-        "title": "Second post",
-        "content": "This is the second post.",
-        "author": "John Doe",
-        "date_created": "02-01-2024",
-        "date_modified": "02-01-2024",
-    },
-]
+POSTS = load_posts()
 
 
 @app.route("/api/posts", methods=["GET"])
@@ -53,7 +37,7 @@ def get_posts() -> Response:
             return jsonify(
                 error=f"'{sorting_key}' is not a valid sorting parameter"
             ), 400  # type: ignore
-        
+
         sorting_direction = args.get("direction", None)
         sorted_posts = get_sorted_posts(sorting_key, sorting_direction)
         return jsonify(sorted_posts)
@@ -87,6 +71,7 @@ def add_post() -> Response:
     new_post["date_created"] = datetime.now().strftime("%Y-%m-%d, %H:%M")
 
     POSTS.append(new_post)
+    save_posts(POSTS)
 
     return jsonify(new_post), 201  # type: ignore
 
@@ -116,6 +101,7 @@ def delete_post(id: int) -> Response:
 
     # Remove post
     POSTS.remove(post)
+    save_posts(POSTS)
 
     return jsonify({
         "message": f"Post with id {id} has been deleted successfully."
@@ -148,6 +134,7 @@ def update_post(id) -> Response:
     new_data["date_modified"] = datetime.now().strftime("%Y-%m-%d, %H:%M")
 
     post.update(new_data)
+    save_posts(POSTS)
 
     return jsonify(post), 200  # type: ignore
 
