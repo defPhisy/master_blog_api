@@ -88,3 +88,34 @@ function deletePost(postId) {
     })
     .catch((error) => console.error("Error:", error)); // If an error occurs, log it to the console
 }
+
+function sortPosts() {
+  const sortField = document.getElementById("sorting-key").value;
+
+  // Retrieve the base URL from the input field and save it to local storage
+  var baseUrl = document.getElementById("api-base-url").value;
+  localStorage.setItem("apiBaseUrl", baseUrl);
+
+  // Use the Fetch API to send a GET request to the /posts endpoint
+  fetch(baseUrl + `/posts?sort=${sortField}`)
+    .then((response) => response.json()) // Parse the JSON data from the response
+    .then((data) => {
+      // Once the data is ready, we can use it
+      // Clear out the post container first
+      const postContainer = document.getElementById("post-container");
+      postContainer.innerHTML = "";
+
+      // For each post in the response, create a new post element and add it to the page
+      data.forEach((post) => {
+        const postDiv = document.createElement("div");
+        postDiv.className = "post";
+        postDiv.innerHTML = `<h2 class="title">${post.title}</h2>
+                            <span class="author">${post.author}</span>
+                            <span class="date">${post.date_created}</span>
+                            <p class="content">${post.content}</p>
+                            <button onclick="deletePost(${post.id})">Delete</button>`;
+        postContainer.appendChild(postDiv);
+      });
+    })
+    .catch((error) => console.error("Error:", error)); // If an error occurs, log it to the console
+}

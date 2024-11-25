@@ -33,7 +33,7 @@ def get_posts() -> Response:
     if "sort" in args:
         sorting_key = args["sort"]
 
-        if sorting_key not in POST_KEYS:
+        if sorting_key not in ["title", "content", "author", "date_created"]:
             return jsonify(
                 error=f"'{sorting_key}' is not a valid sorting parameter"
             ), 400  # type: ignore
@@ -265,7 +265,9 @@ def get_search_results(search_item: str, key: str) -> Response:
 
 def get_sorted_posts(key: str, direction: str | None) -> list:
     is_reversed = True if direction == "desc" else False
-    return sorted(POSTS, key=lambda item: item[key], reverse=is_reversed)
+    return sorted(
+        POSTS, key=lambda item: item[key].lower(), reverse=is_reversed
+    )
 
 
 if __name__ == "__main__":
