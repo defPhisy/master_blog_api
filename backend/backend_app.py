@@ -2,9 +2,15 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask.wrappers import Response
 from typing import Optional, Dict, Any
+from swagger_ui import SWAGGER_URL, swagger_ui_blueprint
+
 
 app = Flask(__name__)
 CORS(app)
+
+# API Documentation with swagger_ui on api/docs
+app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
+
 
 POSTS = [
     {"id": 1, "title": "First post", "content": "This is the first post."},
