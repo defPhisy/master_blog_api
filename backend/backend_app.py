@@ -43,6 +43,21 @@ def get_posts() -> Response:
         Response:
             - 200: JSON list of all posts.
     """
+
+    args = request.args
+
+    if "sort" in args:
+        sorting_key = args["sort"]
+
+        if sorting_key not in POST_KEYS:
+            return jsonify(
+                error=f"'{sorting_key}' is not a valid sorting parameter"
+            ), 400  # type: ignore
+        
+        sorting_direction = args.get("direction", None)
+        sorted_posts = get_sorted_posts(sorting_key, sorting_direction)
+        return jsonify(sorted_posts)
+
     return jsonify(POSTS)
 
 
@@ -259,6 +274,11 @@ def get_search_results(search_item: str, key: str) -> Response:
     if search_results:
         return jsonify(search_results), 200  # type: ignore
     return jsonify(error="Nothing found"), 404  # type: ignore
+
+
+def get_sorted_posts(key: str, direction: str | None) -> list:
+    is_reversed = True if direction == "desc" else False
+    return sorted(POSTS, key=lambda item: item[key], reverse=is_reversed)
 
 
 if __name__ == "__main__":
