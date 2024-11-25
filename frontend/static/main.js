@@ -39,13 +39,17 @@ function loadPosts() {
     .catch((error) => console.error("Error:", error)); // If an error occurs, log it to the console
 }
 
-// Function to send a POST request to the API to add a new post
 function addPost() {
-  // Retrieve the values from the input fields
+  // Retrieve the input elements
   var baseUrl = document.getElementById("api-base-url").value;
-  var postTitle = document.getElementById("post-title").value;
-  var postAuthor = document.getElementById("post-author").value;
-  var postContent = document.getElementById("post-content").value;
+  var postTitleInput = document.getElementById("post-title");
+  var postAuthorInput = document.getElementById("post-author");
+  var postContentInput = document.getElementById("post-content");
+
+  // Retrieve the values from the input elements
+  var postTitle = postTitleInput.value;
+  var postAuthor = postAuthorInput.value;
+  var postContent = postContentInput.value;
 
   // Use the Fetch API to send a POST request to the /posts endpoint
   fetch(baseUrl + "/posts", {
@@ -61,8 +65,13 @@ function addPost() {
     .then((post) => {
       console.log("Post added:", post);
       loadPosts(); // Reload the posts after adding a new one
+
+      // Reset the input fields
+      postTitleInput.value = "";
+      postAuthorInput.value = "";
+      postContentInput.value = "";
     })
-    .catch((error) => console.error("Error:", error)); // If an error occurs, log it to the console
+    .catch((error) => console.error("Error:", error)); // Log any errors
 }
 
 // Function to send a DELETE request to the API to delete a post
